@@ -25,8 +25,29 @@ try {
   console.error('Failed to initialize ETH wallet:', error);
 }
 
+// Fetch live exchange rate from Kraken API
+async function getLiveExchangeRate(): Promise<number> {
+  try {
+    const response = await fetch(config.krakenApiUrl);
+    const data = await response.json();
+
+    if (data.error && data.error.length > 0) {
+      console.error('Kraken API error:', data.error);
+      return config.exchangeRate; // Fallback
+    }
+
+    // Get the last trade price (c[0])
+    const lastPrice = parseFloat(data.result.ADAETH.c[0]);
+    console.log(`📊 Live ADA/ETH rate from Kraken: ${lastPrice} ETH per ADA`);
+    return lastPrice;
+  } catch (error) {
+    console.error('Failed to fetch Kraken exchange rate:', error);
+    return config.exchangeRate; // Fallback to static rate
+  }
+}
+
 // Create new swap order
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', async (req, res) => {
   try {
     const { direction, amount, recipientAddress } = req.body;
 
@@ -34,11 +55,14 @@ app.post('/api/orders', (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Fetch live exchange rate from Kraken
+    const liveRate = await getLiveExchangeRate();
+
     const orderId = uuidv4();
     const outputAmount =
       direction === 'ADA_TO_ETH'
-        ? amount * config.exchangeRate
-        : amount / config.exchangeRate;
+        ? amount * liveRate
+        : amount / liveRate;
 
     // Determine deposit address based on direction
     const depositAddress =
@@ -94,6 +118,22 @@ app.get('/api/orders/:id', (req, res) => {
   } catch (error) {
     console.error('Error fetching order:', error);
     res.status(500).json({ error: 'Failed to fetch order' });
+  }
+});
+
+// Get current exchange rate
+app.get('/api/exchange-rate', async (req, res) => {
+  try {
+    const rate = await getLiveExchangeRate();
+    res.json({
+      rate: rate,
+      source: 'Kraken',
+      pair: 'ADA/ETH',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching exchange rate:', error);
+    res.status(500).json({ error: 'Failed to fetch exchange rate' });
   }
 });
 
@@ -305,16 +345,17 @@ const executeEthSwap = async (order: any) => {
     }
 
     // Send ETH to recipient
+    console.log(`Sending ${order.output_amount} ETH to ${order.recipient_address}...`);
+
     const tx = await ethWallet.sendTransaction({
       to: order.recipient_address,
       value: ethers.parseEther(order.output_amount.toString()),
     });
 
-    console.log(`ETH transaction sent: ${tx.hash}`);
-
     await tx.wait();
 
-    console.log(`ETH swap completed for order ${order.id}`);
+    console.log(`✅ ETH swap completed for order ${order.id}`);
+    console.log(`   Transaction hash: ${tx.hash}`);
 
     updateOrderStatus(order.id, 'completed', order.deposit_tx_hash, tx.hash);
   } catch (error) {

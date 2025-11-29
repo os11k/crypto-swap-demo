@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
@@ -9,8 +9,28 @@ export default function Home() {
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [loading, setLoading] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState(0.0005); // Fallback rate
 
-  const exchangeRate = 0.0005; // 1 ADA = 0.0005 ETH
+  // Fetch live exchange rate from Kraken API on component mount
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/exchange-rate');
+        const data = await response.json();
+        if (data.rate) {
+          setExchangeRate(data.rate);
+        }
+      } catch (error) {
+        console.error('Failed to fetch exchange rate:', error);
+        // Keep using fallback rate
+      }
+    };
+
+    fetchExchangeRate();
+    // Refresh rate every 30 seconds
+    const interval = setInterval(fetchExchangeRate, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const calculateOutput = () => {
     if (!amount || isNaN(parseFloat(amount))) return '0';
@@ -115,7 +135,7 @@ export default function Home() {
 
           {/* Exchange Rate */}
           <div className="text-center text-sm text-gray-600">
-            Rate: 1 ADA = {exchangeRate} ETH
+            Rate: 1 ADA = {exchangeRate.toFixed(8)} ETH
           </div>
 
           {/* Recipient Address */}

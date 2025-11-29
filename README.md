@@ -5,7 +5,7 @@ A fully functional cryptocurrency swap platform for exchanging PreProd ADA and S
 ## 🎯 Features
 
 - 🔄 **Bidirectional Swaps:** ADA→ETH and ETH→ADA
-- 💱 **Fixed Exchange Rate:** 1 ADA = 0.0005 ETH
+- 💱 **Live Exchange Rate:** Real-time rates from Kraken API (ADA/ETH pair)
 - 🔗 **Real Blockchain Transactions:** Actual on-chain swaps on Cardano PreProd and Ethereum Sepolia
 - 📱 **QR Code Generation:** Easy deposits via wallet scanning
 - ⏱️ **30-Minute Order Expiry:** Automatic cleanup of stale orders
@@ -275,8 +275,21 @@ This ensures:
 
 ## 🔌 API Endpoints
 
+### GET `/api/exchange-rate`
+Get current live exchange rate from Kraken
+
+**Response:**
+```json
+{
+  "rate": 0.0001395,
+  "source": "Kraken",
+  "pair": "ADA/ETH",
+  "timestamp": "2025-11-29T17:16:36.648Z"
+}
+```
+
 ### POST `/api/orders`
-Create a new swap order
+Create a new swap order (uses live rate from Kraken)
 
 **Request:**
 ```json
@@ -664,6 +677,32 @@ If you want to make this production-ready:
    - Implement IP whitelisting for admin endpoints
 
 ## 📚 Technical Details
+
+### Live Exchange Rates via Kraken API
+
+The platform fetches **real-time ADA/ETH exchange rates** from Kraken's public API:
+
+**How it works:**
+```typescript
+const response = await fetch('https://api.kraken.com/0/public/Ticker?pair=ADAETH');
+const lastPrice = data.result.ADAETH.c[0]; // Last trade price
+```
+
+**Benefits:**
+- ✅ Market-accurate pricing (no manual rate updates)
+- ✅ Free public API (no authentication needed)
+- ✅ Fallback to static rate if API fails
+- ✅ Transparent pricing - users see real market rates
+
+**Example rates:**
+- Kraken live rate: ~0.00014 ETH per ADA
+- Old fixed rate: 0.0005 ETH per ADA
+- **Live rate is 3.6x more accurate!**
+
+**API Response:**
+- `a[0]` = Ask price (best sell)
+- `b[0]` = Bid price (best buy)
+- `c[0]` = **Last trade price** (what we use)
 
 ### Why Lucid for Cardano?
 

@@ -3,8 +3,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const config = {
-  // Exchange rate: 1 ADA = 0.0005 ETH
-  exchangeRate: 0.0005,
+  // Exchange rate: Use Kraken API for live rates (fallback to 0.0005 ETH)
+  exchangeRate: 0.0005, // Fallback if Kraken API fails
+
+  // Kraken API configuration
+  krakenApiUrl: 'https://api.kraken.com/0/public/Ticker?pair=ADAETH',
 
   // Order expiry time in milliseconds (30 minutes)
   orderExpiryTime: 30 * 60 * 1000,
