@@ -1,0 +1,14 @@
+{
+  "name": "crypto-swap-platform",
+  "version": "1.0.0",
+  "description": "ADA-ETH swap platform for hackathon",
+  "scripts": {
+    "setup": "./setup.sh",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": ["crypto", "swap", "cardano", "ethereum", "hackathon"],
+  "author": "",
+  "license": "MIT"
+}
