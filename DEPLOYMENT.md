@@ -1,161 +1,254 @@
-# Deployment Guide
+# DigitalOcean Deployment Guide
 
-Quick deployment guide for hackathon demo.
+Complete guide to deploy the ADA ⇄ ETH swap platform to DigitalOcean.
 
-## Option 1: Deploy to Vercel (Frontend) + Railway (Backend)
+## 📋 Prerequisites
 
-### Frontend - Vercel (Recommended)
+- DigitalOcean account
+- Domain name (optional but recommended)
+- Your `.env` variables ready
+- GitHub account (for code deployment)
 
-1. **Push to GitHub:**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/yourusername/crypto-swap.git
-   git push -u origin main
-   ```
+## 🚀 Step 1: Create Droplet
 
-2. **Deploy to Vercel:**
-   - Go to https://vercel.com
-   - Click "New Project"
-   - Import your GitHub repository
-   - Set root directory: `frontend`
-   - Click "Deploy"
+1. **Go to DigitalOcean Dashboard**
+   - https://cloud.digitalocean.com/
 
-3. **Update API URL:**
-   After backend is deployed, update frontend to use production backend URL:
+2. **Create → Droplets**
 
-   Create `frontend/.env.local`:
-   ```bash
-   NEXT_PUBLIC_API_URL=https://your-backend.railway.app
-   ```
+3. **Choose Configuration:**
+   - **Image:** Ubuntu 24.04 LTS
+   - **Plan:** Basic
+   - **CPU Options:** Regular (1GB RAM / $6/mo)
+   - **Datacenter:** Choose closest to your users
+   - **Authentication:** SSH key (recommended) or Password
+   - **Hostname:** `crypto-swap` or your choice
 
-   Update API calls in frontend to use:
-   ```javascript
-   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-   fetch(`${apiUrl}/api/orders`, ...)
-   ```
+4. **Create Droplet** and wait ~60 seconds
 
-### Backend - Railway
+5. **Note your Droplet IP:** `165.227.xxx.xxx`
 
-1. **Go to Railway:**
-   - Visit https://railway.app
-   - Sign up with GitHub
-   - Click "New Project" → "Deploy from GitHub repo"
-   - Select your repository
-   - Set root directory: `backend`
+## 🔧 Step 2: Initial Server Setup
 
-2. **Configure Environment Variables:**
-   In Railway dashboard, add:
-   ```
-   ETH_PRIVATE_KEY=your_sepolia_private_key
-   ETH_RPC_URL=https://sepolia.infura.io/v3/your_key
-   CARDANO_ADDRESS=addr_test1...
-   CARDANO_BLOCKFROST_KEY=preprod...
-   ```
-
-3. **Configure Start Command:**
-   - Settings → Start Command: `npm start`
-   - Or add to package.json: `"start": "tsx src/index.ts"`
-
-4. **Get Public URL:**
-   - Railway will give you a public URL like `https://crypto-swap-production.up.railway.app`
-   - Copy this URL
-
-5. **Update Vercel Frontend:**
-   - In Vercel dashboard → Settings → Environment Variables
-   - Add: `NEXT_PUBLIC_API_URL=https://your-backend.railway.app`
-   - Redeploy frontend
-
-## Option 2: Deploy to Render (Both)
-
-### Backend - Render
-
-1. **Create Web Service:**
-   - Go to https://render.com
-   - New → Web Service
-   - Connect GitHub repo
-   - Settings:
-     - Name: crypto-swap-backend
-     - Root Directory: `backend`
-     - Build Command: `npm install`
-     - Start Command: `npm start`
-
-2. **Environment Variables:**
-   Add all variables from `.env`
-
-3. **Deploy**
-
-### Frontend - Render
-
-1. **Create Static Site:**
-   - New → Static Site
-   - Root Directory: `frontend`
-   - Build Command: `npm run build`
-   - Publish Directory: `.next`
-
-2. **Environment Variable:**
-   - Add `NEXT_PUBLIC_API_URL` with backend URL
-
-## Option 3: Deploy to DigitalOcean App Platform
-
-1. **Create App:**
-   - Go to DigitalOcean → Apps
-   - Create App from GitHub
-   - Detect both components (frontend + backend)
-
-2. **Configure Backend:**
-   - Type: Web Service
-   - Run Command: `npm start`
-   - Environment variables from `.env`
-
-3. **Configure Frontend:**
-   - Type: Static Site
-   - Build Command: `npm run build`
-   - Output Directory: `.next`
-
-## Option 4: Quick VPS Deployment
-
-If you have a VPS (DigitalOcean Droplet, AWS EC2, etc.):
+SSH into your droplet:
 
 ```bash
-# SSH into VPS
-ssh user@your-server-ip
-
-# Install Node.js
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Clone repo
-git clone https://github.com/yourusername/crypto-swap.git
-cd crypto-swap
-
-# Setup backend
-cd backend
-npm install
-nano .env  # Add your environment variables
-npm install -g pm2
-pm2 start src/index.ts --name crypto-swap-backend --interpreter tsx
-pm2 save
-pm2 startup
-
-# Setup frontend
-cd ../frontend
-npm install
-npm run build
-pm2 start npm --name crypto-swap-frontend -- start
-pm2 save
-
-# Setup Nginx reverse proxy
-sudo apt install nginx
-sudo nano /etc/nginx/sites-available/crypto-swap
+ssh root@YOUR_DROPLET_IP
 ```
 
-Nginx config:
+### Update System
+
+```bash
+apt update && apt upgrade -y
+```
+
+### Install Node.js 18+
+
+```bash
+# Install Node.js 18.x
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt install -y nodejs
+
+# Verify installation
+node --version  # Should show v18.x or higher
+npm --version
+```
+
+### Install PM2 (Process Manager)
+
+```bash
+npm install -g pm2
+```
+
+### Install Nginx (Reverse Proxy)
+
+```bash
+apt install -y nginx
+```
+
+### Setup Firewall
+
+```bash
+ufw allow OpenSSH
+ufw allow 'Nginx Full'
+ufw enable
+```
+
+## 📦 Step 3: Deploy Your Code
+
+### Option A: Deploy from GitHub (Recommended)
+
+1. **Push your code to GitHub** (on your local machine):
+
+```bash
+# Initialize git if not done
+cd /home/os11k/crypto-swap
+git init
+git add .
+git commit -m "Initial commit"
+
+# Create repo on GitHub, then:
+git remote add origin https://github.com/YOUR_USERNAME/crypto-swap.git
+git push -u origin main
+```
+
+2. **Clone on server:**
+
+```bash
+cd /home
+git clone https://github.com/YOUR_USERNAME/crypto-swap.git
+cd crypto-swap
+```
+
+### Option B: Upload via SCP (Quick method)
+
+On your local machine:
+
+```bash
+# Compress the project
+cd /home/os11k
+tar -czf crypto-swap.tar.gz crypto-swap/ \
+  --exclude='node_modules' \
+  --exclude='.next' \
+  --exclude='*.db' \
+  --exclude='.git'
+
+# Upload to server
+scp crypto-swap.tar.gz root@YOUR_DROPLET_IP:/home/
+
+# On server, extract:
+ssh root@YOUR_DROPLET_IP
+cd /home
+tar -xzf crypto-swap.tar.gz
+```
+
+## 🔐 Step 4: Configure Environment Variables
+
+```bash
+cd /home/crypto-swap/backend
+
+# Create .env file
+nano .env
+```
+
+Paste your environment variables:
+
+```env
+# Ethereum (Sepolia Testnet)
+ETH_RPC_URL=https://eth-sepolia.api.onfinality.io/rpc?apikey=YOUR_KEY
+ETH_PRIVATE_KEY=0xYOUR_ETHEREUM_PRIVATE_KEY
+ETHERSCAN_API_KEY=YOUR_ETHERSCAN_API_KEY
+
+# Cardano (PreProd Testnet)
+CARDANO_BLOCKFROST_KEY=preprodYOUR_KEY
+CARDANO_ADDRESS=addr_test1...
+CARDANO_PRIVATE_KEY=ed25519e_sk1...
+```
+
+Save with `Ctrl+X`, `Y`, `Enter`
+
+## 📦 Step 5: Install Dependencies & Build
+
+### Backend
+
+```bash
+cd /home/crypto-swap/backend
+npm install --production
+```
+
+### Frontend
+
+```bash
+cd /home/crypto-swap/frontend
+npm install
+npm run build  # This creates optimized production build
+```
+
+## 🚀 Step 6: Start Services with PM2
+
+### Start Backend
+
+```bash
+cd /home/crypto-swap/backend
+
+# Start with PM2
+pm2 start npm --name "crypto-swap-backend" -- start
+
+# Or if using tsx:
+pm2 start "npx tsx src/index.ts" --name "crypto-swap-backend"
+```
+
+### Start Frontend
+
+```bash
+cd /home/crypto-swap/frontend
+
+# Start Next.js in production mode
+pm2 start npm --name "crypto-swap-frontend" -- start
+```
+
+### Configure PM2 to start on reboot
+
+```bash
+pm2 startup systemd
+pm2 save
+```
+
+### Check services are running
+
+```bash
+pm2 list
+pm2 logs
+```
+
+## 🌐 Step 7: Configure Nginx Reverse Proxy
+
+```bash
+nano /etc/nginx/sites-available/crypto-swap
+```
+
+Paste this configuration:
+
+```nginx
+# Backend API
+server {
+    listen 80;
+    server_name api.yourdomain.com;  # or use IP: YOUR_DROPLET_IP
+
+    location / {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+
+# Frontend
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;  # or YOUR_DROPLET_IP
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+**If you don't have a domain**, use just the IP:
+
 ```nginx
 server {
     listen 80;
-    server_name your-domain.com;
+    server_name YOUR_DROPLET_IP;
 
     # Frontend
     location / {
@@ -169,7 +262,7 @@ server {
 
     # Backend API
     location /api {
-        proxy_pass http://localhost:3001;
+        proxy_pass http://localhost:3001/api;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -177,177 +270,208 @@ server {
 }
 ```
 
+Enable the site:
+
 ```bash
-sudo ln -s /etc/nginx/sites-available/crypto-swap /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
+ln -s /etc/nginx/sites-available/crypto-swap /etc/nginx/sites-enabled/
+nginx -t  # Test configuration
+systemctl restart nginx
 ```
 
-## CORS Configuration for Production
+## 🔒 Step 8: SSL Certificate (Optional - for domains)
 
-Update `backend/src/index.ts`:
+If you have a domain:
+
+```bash
+# Install Certbot
+apt install -y certbot python3-certbot-nginx
+
+# Get SSL certificate
+certbot --nginx -d yourdomain.com -d www.yourdomain.com
+
+# Auto-renewal is configured automatically
+```
+
+## 🎯 Step 9: Update Frontend API URL
+
+Since frontend is now on a different server, update the API URL:
+
+```bash
+cd /home/crypto-swap/frontend
+
+# Create production environment variable
+nano .env.production.local
+```
+
+Add:
+
+```env
+NEXT_PUBLIC_API_URL=http://YOUR_DROPLET_IP:3001
+# Or if using domain: https://api.yourdomain.com
+```
+
+Rebuild and restart:
+
+```bash
+npm run build
+pm2 restart crypto-swap-frontend
+```
+
+**OR** update the code to use relative paths if using single domain setup.
+
+## ✅ Step 10: Verify Deployment
+
+1. **Check services:**
+```bash
+pm2 list
+pm2 logs crypto-swap-backend
+pm2 logs crypto-swap-frontend
+```
+
+2. **Test backend:**
+```bash
+curl http://localhost:3001/health
+# Should return: {"status":"ok"}
+```
+
+3. **Test frontend:**
+```bash
+curl http://localhost:3000
+# Should return HTML
+```
+
+4. **Access from browser:**
+   - Frontend: `http://YOUR_DROPLET_IP`
+   - Backend: `http://YOUR_DROPLET_IP/api/exchange-rate`
+
+## 🔍 Troubleshooting
+
+### Check logs
+
+```bash
+# PM2 logs
+pm2 logs
+
+# Nginx logs
+tail -f /var/log/nginx/error.log
+tail -f /var/log/nginx/access.log
+
+# System logs
+journalctl -u nginx -f
+```
+
+### Service not starting
+
+```bash
+# Check if ports are in use
+netstat -tulpn | grep :3000
+netstat -tulpn | grep :3001
+
+# Restart services
+pm2 restart all
+systemctl restart nginx
+```
+
+### Out of memory
+
+```bash
+# Check memory
+free -h
+
+# If needed, create swap
+fallocate -l 1G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+```
+
+### Frontend can't reach backend
+
+Update frontend code to use environment variable:
 
 ```typescript
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
+// Instead of: http://localhost:3001
+// Use:
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+fetch(`${API_URL}/api/orders`, ...)
 ```
 
-Add to backend environment variables:
-```
-FRONTEND_URL=https://your-vercel-app.vercel.app
-```
+## 🔄 Updating Your Code
 
-## Pre-Deployment Checklist
-
-- [ ] All environment variables documented
-- [ ] `.env` added to `.gitignore` (never commit secrets!)
-- [ ] Database persistence configured (SQLite file on volume)
-- [ ] Error handling tested
-- [ ] CORS properly configured
-- [ ] API URLs point to production backend
-- [ ] Escrow wallets funded with testnet tokens
-- [ ] Test a full swap on production
-- [ ] Monitoring/logging enabled
-
-## Database Persistence
-
-**Important:** SQLite database needs to persist between deployments.
-
-### Railway:
-- Add a volume mount for `backend/swap.db`
-- Settings → Volumes → Mount path: `/app/backend`
-
-### Render:
-- Add disk storage
-- Mount path: `/opt/render/project/src/backend`
-
-### Alternative: Use PostgreSQL
-For production, consider switching to PostgreSQL:
+When you make changes:
 
 ```bash
-# Railway/Render provide free PostgreSQL
-# Update db.ts to use pg instead of better-sqlite3
-```
+# On server
+cd /home/crypto-swap
+git pull origin main
 
-## Monitoring
-
-### Simple Health Checks
-
-Add to backend:
-```typescript
-app.get('/api/stats', (req, res) => {
-  const stmt = db.prepare('SELECT status, COUNT(*) as count FROM orders GROUP BY status');
-  const stats = stmt.all();
-  res.json({ stats });
-});
-```
-
-### Logging
-
-Use a service like:
-- LogTail
-- Papertrail
-- Datadog
-
-Railway/Render have built-in logging.
-
-## Cost Estimate (Free Tier)
-
-- **Vercel:** Free (Frontend)
-- **Railway:** $5/month or free trial (Backend)
-- **Render:** Free tier available (slower)
-- **DigitalOcean:** $5/month droplet
-- **Infura:** Free (up to 100k requests/day)
-- **Blockfrost:** Free tier available
-
-**Total for hackathon:** $0-5/month
-
-## Quick Deploy Script
-
-```bash
-#!/bin/bash
-# deploy.sh
-
-echo "🚀 Deploying to production..."
-
-# Build frontend
+# Rebuild frontend
 cd frontend
 npm run build
-echo "✅ Frontend built"
+pm2 restart crypto-swap-frontend
 
-# Test backend
-cd ../backend
-npm run start &
-BACKEND_PID=$!
-sleep 5
-
-# Test health endpoint
-curl http://localhost:3001/health
-if [ $? -eq 0 ]; then
-    echo "✅ Backend healthy"
-else
-    echo "❌ Backend not responding"
-    kill $BACKEND_PID
-    exit 1
-fi
-
-kill $BACKEND_PID
-
-echo "✅ Ready to deploy!"
-echo "Next steps:"
-echo "1. Push to GitHub"
-echo "2. Deploy frontend to Vercel"
-echo "3. Deploy backend to Railway"
-echo "4. Update environment variables"
-echo "5. Test production swap"
+# Restart backend (if changed)
+pm2 restart crypto-swap-backend
 ```
 
-## Troubleshooting Deployment
-
-### Backend won't start
-- Check build logs for missing dependencies
-- Verify Node.js version (18+)
-- Check environment variables are set
-- Look for port conflicts
-
-### Frontend shows API errors
-- Verify `NEXT_PUBLIC_API_URL` is set
-- Check CORS configuration
-- Inspect network tab in browser DevTools
-- Verify backend is accessible
-
-### Database errors
-- Ensure write permissions for SQLite file
-- Check volume/disk is mounted
-- Verify database file path in code
-
-## Post-Deployment Testing
+## 📊 Monitoring
 
 ```bash
-# Test health
-curl https://your-backend.railway.app/health
+# PM2 monitoring
+pm2 monit
 
-# Create test order
-curl -X POST https://your-backend.railway.app/api/orders \
-  -H "Content-Type: application/json" \
-  -d '{
-    "direction": "ADA_TO_ETH",
-    "amount": 10,
-    "recipientAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8"
-  }'
+# Check resource usage
+htop
 
-# Get order
-curl https://your-backend.railway.app/api/orders/ORDER_ID
+# Setup monitoring dashboard (optional)
+pm2 install pm2-server-monit
 ```
 
-## For Demo Day
+## 🎉 Done!
 
-1. **Deploy day before:** Don't deploy right before presenting
-2. **Test thoroughly:** Run full swaps on production
-3. **Have fallback:** Keep localhost version ready
-4. **Monitor during demo:** Watch backend logs
-5. **Share URL:** Give judges/attendees the link
+Your swap platform is now live at:
+- **Frontend:** `http://YOUR_DROPLET_IP`
+- **Backend API:** `http://YOUR_DROPLET_IP:3001` (or `/api` if using nginx routing)
 
-Good luck with your deployment! 🚀
+## 📝 Quick Reference Commands
+
+```bash
+# Start services
+pm2 start all
+
+# Stop services
+pm2 stop all
+
+# Restart services
+pm2 restart all
+
+# View logs
+pm2 logs
+
+# Check status
+pm2 list
+
+# Restart Nginx
+systemctl restart nginx
+
+# Check Nginx status
+systemctl status nginx
+```
+
+## 🆘 Emergency Commands
+
+```bash
+# Kill all Node processes
+pkill -9 node
+
+# Restart everything
+pm2 delete all
+cd /home/crypto-swap/backend && pm2 start "npx tsx src/index.ts" --name backend
+cd /home/crypto-swap/frontend && pm2 start npm --name frontend -- start
+systemctl restart nginx
+```
+
+---
+
+**Need help?** Check logs with `pm2 logs` and `tail -f /var/log/nginx/error.log`
