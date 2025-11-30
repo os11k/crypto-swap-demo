@@ -45,12 +45,12 @@ apt update && apt upgrade -y
 ### Install Node.js 18+
 
 ```bash
-# Install Node.js 18.x
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+# Install Node.js 24.x LTS
+curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
 apt install -y nodejs
 
 # Verify installation
-node --version  # Should show v18.x or higher
+node --version  # Should show v24.x
 npm --version
 ```
 

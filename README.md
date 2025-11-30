@@ -27,7 +27,7 @@ A fully functional cryptocurrency swap platform for exchanging PreProd ADA and S
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 24.x LTS
 - npm or yarn
 - Sepolia ETH testnet funds
 - PreProd ADA testnet funds
